@@ -3,19 +3,16 @@ package controllers
 import (
 	_ "crypto/sha1"
 	"ewallet/models"
-	"fmt"
 	"github.com/jinzhu/gorm"
 	"golang.org/x/crypto/bcrypt"
-	"html/template"
 	"log"
 	"net/http"
-	"path"
+	"strconv"
 	"time"
 )
 
 func HashPassword(password string) (string, error) {
 	bytes, err := bcrypt.GenerateFromPassword([]byte(password), 14)
-	fmt.Print("hash awal :", string(bytes), "\n")
 	return string(bytes), err
 }
 
@@ -24,25 +21,11 @@ func CheckPasswordHash(password, hash string) bool {
 	return err == nil
 }
 
-func serveTemplate(data map[string]interface{}, w http.ResponseWriter, filename string) {
-	filepath := path.Join("views", filename)
-	tmpl, err := template.ParseFiles(filepath)
-	// if failed to serve template
-	if err != nil {
-		http.Error(w, err.Error(), http.StatusInternalServerError)
-		return
-	}
-
-	err = tmpl.Execute(w, data)
-	if err != nil {
-		http.Error(w, err.Error(), http.StatusInternalServerError)
-	}
-}
 
 func Register(con *gorm.DB) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
 		if r.Method != "POST" { // jika method POST
-			serveTemplate(nil, w, "register.html") //tampilkan page register.html
+			http.Error(w, "", http.StatusBadRequest)
 			return
 		}
 
@@ -73,10 +56,10 @@ func Register(con *gorm.DB) http.HandlerFunc {
 				return
 			}
 
-			fmt.Println(w, "Registrasi berhasil")
+			http.Error(w, "Registrasi Berhasil", http.StatusOK)
 		} else {
 			//jika username atau email sudah ada di database
-			fmt.Println(w, "Username atau email sudah terdaftar")
+			http.Error(w, "Username atau Email sudah terdaftar", http.StatusBadRequest)
 		}
 	}
 }
@@ -91,12 +74,13 @@ func Login(con *gorm.DB) http.HandlerFunc {
 			c = storedCookie
 		}
 		if c.Value != "" {
-			http.Redirect(w, r, "/", 302)
+			http.Error(w, "Anda belum login", http.StatusBadRequest)
+			return
 		}
 
 
 		if r.Method != "POST" { // jika method POST
-			http.ServeFile(w, r, "login.html") //tampilkan page login.html
+			http.Error(w, "", http.StatusBadRequest)
 			return
 		}
 
@@ -109,27 +93,21 @@ func Login(con *gorm.DB) http.HandlerFunc {
 		// query user dari database
 		con.First(&user, "username = ?", Username)
 
-		if user.Username == "" {
-			fmt.Println(w, "Username atau Password salah")
-			http.Redirect(w, r, "/", 302)
-			return
-		}
-
 		//compare password
 		match := CheckPasswordHash(Password, user.Password)
 
 		if match {
 			// login berhasil
 			c = &http.Cookie{}
-			c.Name = "Username"
-			c.Value = Username
+			c.Name = "User_ID"
+			c.Value = strconv.Itoa(user.ID)
 			c.Expires = time.Now().Add(5 * time.Minute)
 			http.SetCookie(w, c)
-			http.Redirect(w, r, "/", 302)
+			http.Error(w, "Login Berhasil", http.StatusOK)
 		} else {
 			// login gagal
-			fmt.Println(w, "Username atau Password salah")
-			http.Redirect(w, r, "/login", 302)
+			http.Error(w, "Username atau Password salah", http.StatusBadRequest)
+
 		}
 	}
 }
@@ -137,11 +115,11 @@ func Login(con *gorm.DB) http.HandlerFunc {
 func Logout(con *gorm.DB) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
 		c := &http.Cookie{}
-		c.Name = "Username"
+		c.Name = "User_ID"
 		c.Expires = time.Unix(0, 0)
 		c.MaxAge = -1
 		http.SetCookie(w, c)
 
-		//http.Redirect(w, r, "/login", http.StatusTemporaryRedirect)
+		http.Error(w, "Logout Berhasil", http.StatusOK)
 	}
 }

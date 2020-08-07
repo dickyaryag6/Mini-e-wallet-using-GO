@@ -12,17 +12,11 @@ func Index(con *gorm.DB) http.HandlerFunc {
 		//mendapatkan username user
 
 		c := &http.Cookie{}
-		if storedCookie, _ := r.Cookie("Username"); storedCookie != nil {
+		if storedCookie, _ := r.Cookie("User_ID"); storedCookie != nil {
 			c = storedCookie
 		}
 
-		fmt.Println("Hello",c.Value)
+		fmt.Println(c.Value)
 
-		//data := map[string]string{
-		//	"username": c.,
-		//	"message":  "Index Page !",
-		//}
-
-		//fmt.Println("Hello")
 	}
 }
