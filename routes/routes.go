@@ -19,7 +19,9 @@ func GetRoutes(con *gorm.DB) *mux.Router {
 	//tambahkan route di bawah ini
 	routes.HandleFunc("/index", controllers.Index(con)) // jika route /index dipanggil, maka akan menjalankan Handler Index
 
-	routes.HandleFunc("/register", controllers.Register(con))
+	//autentikasi
+	routes.HandleFunc("/register", controllers.Register(con)).Methods("POST")
+	routes.HandleFunc("/login", controllers.Login(con)).Methods("POST")
 
 	return routes
 }

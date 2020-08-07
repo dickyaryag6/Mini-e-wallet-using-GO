@@ -1,6 +1,7 @@
 package controllers
 
 import (
+	_ "crypto/sha1"
 	"ewallet/models"
 	"fmt"
 	"github.com/jinzhu/gorm"
@@ -9,7 +10,19 @@ import (
 	"log"
 	"net/http"
 	"path"
+	"time"
 )
+
+func HashPassword(password string) (string, error) {
+	bytes, err := bcrypt.GenerateFromPassword([]byte(password), 14)
+	fmt.Print("hash awal :", string(bytes), "\n")
+	return string(bytes), err
+}
+
+func CheckPasswordHash(password, hash string) bool {
+	err := bcrypt.CompareHashAndPassword([]byte(hash), []byte(password))
+	return err == nil
+}
 
 func serveTemplate(data map[string]interface{}, w http.ResponseWriter, filename string) {
 	filepath := path.Join("views", filename)
@@ -38,6 +51,7 @@ func Register(con *gorm.DB) http.HandlerFunc {
 		Email := r.FormValue("email")
 		Password := r.FormValue("password")
 
+
 		var user models.User
 
 		//cek apakah username sudah ada
@@ -48,14 +62,12 @@ func Register(con *gorm.DB) http.HandlerFunc {
 
 		//jika username dan email tidak ada di database
 		if err1 != nil && err2 != nil {
+
 			//hash password
-			hashedPassword, err := bcrypt.GenerateFromPassword([]byte(Password), bcrypt.DefaultCost)
-			if err != nil {
-				log.Fatal(err)
-			}
+			hash, _ := HashPassword(Password)
 
 			// insert user baru
-			err = con.Create(&models.User{Email: Email, Username: Username, Password: string(hashedPassword)}).Error
+			err := con.Create(&models.User{Email: Email, Username: Username, Password: hash}).Error
 			if err != nil {
 				log.Fatal(err)
 				return
@@ -65,6 +77,59 @@ func Register(con *gorm.DB) http.HandlerFunc {
 		} else {
 			//jika username atau email sudah ada di database
 			fmt.Println(w, "Username atau email sudah terdaftar")
+		}
+	}
+}
+
+
+func Login(con *gorm.DB) http.HandlerFunc {
+	return func(w http.ResponseWriter, r *http.Request) {
+
+		//cek username di session
+		c := &http.Cookie{}
+		if storedCookie, _ := r.Cookie("Username"); storedCookie != nil {
+			c = storedCookie
+		}
+		if c.Value != "" {
+			http.Redirect(w, r, "/", 302)
+		}
+
+
+		if r.Method != "POST" { // jika method POST
+			http.ServeFile(w, r, "login.html") //tampilkan page login.html
+			return
+		}
+
+		//mendapatkan data dari form
+		Username := r.FormValue("username")
+		Password := r.FormValue("password")
+
+		var user models.User
+
+		// query user dari database
+		con.First(&user, "username = ?", Username)
+
+		if user.Username == "" {
+			fmt.Println(w, "Username atau Password salah")
+			http.Redirect(w, r, "/", 302)
+			return
+		}
+
+		//compare password
+		match := CheckPasswordHash(Password, user.Password)
+
+		if match {
+			// login berhasil
+			c = &http.Cookie{}
+			c.Name = "Username"
+			c.Value = Username
+			c.Expires = time.Now().Add(5 * time.Minute)
+			http.SetCookie(w, c)
+			http.Redirect(w, r, "/", 302)
+		} else {
+			// login gagal
+			fmt.Println(w, "Username atau Password salah")
+			http.Redirect(w, r, "/login", 302)
 		}
 	}
 }
