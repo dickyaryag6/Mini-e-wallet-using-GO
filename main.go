@@ -1,30 +1,51 @@
 package main
 
 import (
+	"ewallet/database"
 	"ewallet/routes"
 	"fmt"
-	"github.com/jinzhu/gorm"
-	_ "github.com/jinzhu/gorm/dialects/sqlite"
+	_ "github.com/jinzhu/gorm/dialects/mysql"
+	"github.com/spf13/viper"
 	"log"
 	"net/http"
 )
 
-func DBConnection() (*gorm.DB) {
+func GetEnvironmentVariable(key string) string {
+	viper.SetConfigFile(".env")
 
-	db, _ := gorm.Open("sqlite3", "/tmp/gorm.db")
-	defer db.Close()
+	err := viper.ReadInConfig()
 
-	return db
+	if err != nil {
+		log.Fatalf("Error while reading config file %s", err)
+	}
+
+	value, ok := viper.Get(key).(string)
+
+	if !ok {
+		log.Fatalf("Invalid type assertion")
+	}
+
+	return value
 }
 
 func main() {
 
 	//Inisialisasi Koneksi Database
-	connection := DBConnection()
+	connection := database.DBConnection(
+			GetEnvironmentVariable("USER"),
+			GetEnvironmentVariable("PASSWORD"),
+			GetEnvironmentVariable("HOST"),
+			GetEnvironmentVariable("DATABASE"),
+	)
+
+	//migrasi database
+	database.Migrate(connection)
 
 	routes := routes.GetRoutes(connection)
 	http.Handle("/", routes)
 
 	fmt.Println("server started at localhost:8080")
 	log.Fatal(http.ListenAndServe(":8080", nil))
+
+	defer connection.Close()
 }
