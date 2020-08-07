@@ -133,3 +133,15 @@ func Login(con *gorm.DB) http.HandlerFunc {
 		}
 	}
 }
+
+func Logout(con *gorm.DB) http.HandlerFunc {
+	return func(w http.ResponseWriter, r *http.Request) {
+		c := &http.Cookie{}
+		c.Name = "Username"
+		c.Expires = time.Unix(0, 0)
+		c.MaxAge = -1
+		http.SetCookie(w, c)
+
+		//http.Redirect(w, r, "/login", http.StatusTemporaryRedirect)
+	}
+}

@@ -22,6 +22,6 @@ func GetRoutes(con *gorm.DB) *mux.Router {
 	//autentikasi
 	routes.HandleFunc("/register", controllers.Register(con)).Methods("POST")
 	routes.HandleFunc("/login", controllers.Login(con)).Methods("POST")
-
+	routes.HandleFunc("/logout", controllers.Logout(con))
 	return routes
 }
