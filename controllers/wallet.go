@@ -307,8 +307,6 @@ func Transfer (con *gorm.DB) http.HandlerFunc {
 				toWalletID, _ := strconv.Atoi(r.URL.Query()["towallet"][0])
 				transactionType := r.URL.Query()["type"][0]
 
-				fmt.Println(fromWalletID, toWalletID, transactionType)
-
 				transferBalance, _ := strconv.Atoi(r.URL.Query()["balance"][0])
 
 				//get fromWallet
@@ -319,6 +317,9 @@ func Transfer (con *gorm.DB) http.HandlerFunc {
 					return
 				}
 
+				//cek balance fromWallet
+
+
 				//get toWallet
 				var toWallet models.UserBalance
 				if err := con.First(&toWallet, toWalletID).Error; gorm.IsRecordNotFoundError(err) {
@@ -327,16 +328,22 @@ func Transfer (con *gorm.DB) http.HandlerFunc {
 					return
 				}
 
+				fmt.Println(toWallet.Balance, fromWallet.Balance)
+
 				//transfer
+
+				oldFromBalance := fromWallet.Balance
+				if transferBalance > fromWallet.Balance {
+					http.Error(w, "Saldo tidak cukup", http.StatusBadRequest)
+					return
+				}
 				//kurangi balance fromWallet
 				oldToBalance := toWallet.Balance
-				if transferBalance < toWallet.Balance {
-					con.Model(&toWallet).Updates(map[string]interface{}{"balance": oldToBalance-transferBalance})
-				}
+				
+				con.Model(&fromWallet).Updates(map[string]interface{}{"balance": oldFromBalance-transferBalance})
 
 				//tambahkan balance toWallet
-				oldFromBalance := fromWallet.Balance
-				con.Model(&fromWallet).Updates(map[string]interface{}{"balance": transferBalance+oldFromBalance, "balance_achieve": transferBalance+oldFromBalance})
+				con.Model(&toWallet).Updates(map[string]interface{}{"balance": transferBalance+oldToBalance, "balance_achieve": transferBalance+oldToBalance})
 
 				//tambahkan history
 				CreateNewUserBalanceHistory(con, fromWalletID, oldFromBalance, oldFromBalance-transferBalance, "Transfer", transactionType, r)
