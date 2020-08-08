@@ -25,6 +25,7 @@ func GetRoutes(con *gorm.DB) *mux.Router {
 	routes.HandleFunc("/logout", controllers.Logout(con))
 
 	//transaksi wallet
+	routes.HandleFunc("/wallet/", controllers.GetAllWallet(con)).Methods("GET")
 	routes.HandleFunc("/wallet/{walletID}", controllers.GetWallet(con)).Methods("GET")
 	routes.HandleFunc("/wallet/create", controllers.CreateNewWallet(con)).Methods("POST")
 	routes.HandleFunc("/wallet/delete/{walletID}", controllers.DeleteWallet(con)).Methods("DELETE")

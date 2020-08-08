@@ -9,7 +9,7 @@ type UserBalance struct {
 	UserID 				int  `gorm:"column:user_id" json:"user_id"`
 	Balance 			int	 `gorm:"column:balance"`
 	BalanceAchieve  	int	 `gorm:"column:balance_achieve"`
-	UserBalanceHistory 	[]UserBalanceHistory
+	//UserBalanceHistory 	[]UserBalanceHistory
 	CreatedAt 			time.Time
 	UpdatedAt 			time.Time
 }

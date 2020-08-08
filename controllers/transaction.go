@@ -3,18 +3,12 @@ package controllers
 import (
 	"encoding/json"
 	"ewallet/models"
-	"fmt"
 	"github.com/gorilla/mux"
 	"github.com/jinzhu/gorm"
 	"net/http"
 	"strconv"
-	"strings"
 	"time"
 )
-
-type UpdateBalance struct {
-	newBalance int
-}
 
 func getCookieValue(con *gorm.DB, r *http.Request) string {
 	c := &http.Cookie{}
@@ -27,36 +21,75 @@ func getCookieValue(con *gorm.DB, r *http.Request) string {
 }
 
 func JsonResponse(data interface{}, w http.ResponseWriter) {
+	result, err := json.Marshal(data)
 
-	w.Header().Set("Content-Type", "application/json")
-
-	err := json.NewEncoder(w).Encode(data)
 	if err != nil {
 		http.Error(w, err.Error(), http.StatusInternalServerError)
 		return
 	}
-	w.WriteHeader(http.StatusOK)
+	w.Header().Set("Content-Type", "application/json")
+	w.Write(result)
+}
+
+
+func GetAllWallet(con *gorm.DB) http.HandlerFunc {
+	return func(w http.ResponseWriter, r *http.Request) {
+		if r.Method == "GET" {
+			//cek userid dari cookie
+			userId, _ := strconv.Atoi(getCookieValue(con, r))
+			if userId != 0 {
+				//get semua wallet dengan user_id sama dengan userId
+				wallet := make([]models.UserBalance, 0)
+
+				if err := con.Where(&models.UserBalance{UserID: userId}).Find(&wallet).Error; gorm.IsRecordNotFoundError(err) {
+					// record not found
+					http.Error(w, "Anda belum mempunyai wallet", http.StatusBadRequest)
+					return
+				}
+
+				//data := struct {message string;wallet []models.UserBalance} {"Berhasil", wallet}
+				//data := struct {message string} {"Berhasil"}
+				JsonResponse(wallet, w)
+				return
+			}
+
+			//tidak punya akses
+			http.Error(w, "Anda tidak punya akses", http.StatusBadRequest)
+			return
+		}
+	}
 }
 
 func GetWallet(con *gorm.DB) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
 
 		if r.Method == "GET" {
-			//mendapatkan walletID dari url parameter
-			urlParams := mux.Vars(r)
-			walletID := urlParams["walletID"]
+			//cek userid dari cookie
+			userId, _ := strconv.Atoi(getCookieValue(con, r))
+			if userId != 0 {
+				//get semua wallet dengan user_id sama dengan userId
+				//mendapatkan walletID dari url parameter
+				urlParams := mux.Vars(r)
+				walletID := urlParams["walletID"]
 
-			var wallet models.UserBalance
+				var wallet models.UserBalance
 
-			if err := con.First(&wallet, walletID).Error; gorm.IsRecordNotFoundError(err) {
-				// record not found
-				http.Error(w, "Wallet tidak ditemukan", http.StatusBadRequest)
-				return
+				if err := con.First(&wallet, walletID).Error; gorm.IsRecordNotFoundError(err) {
+					// record not found
+					http.Error(w, "Wallet tidak ditemukan", http.StatusBadRequest)
+					return
+				}
+
+				//cek jika user punya akses terhadap wallet
+				if wallet.UserID == userId {
+					//punya akses
+					JsonResponse(wallet, w)
+					return
+				}
 			}
-
-			data := struct {wallet models.UserBalance} {wallet}
-
-			JsonResponse(data, w)
+			//tidak punya akses
+			http.Error(w, "Anda tidak punya akses", http.StatusBadRequest)
+			return
 		}
 	}
 }
@@ -65,25 +98,29 @@ func CreateNewWallet(con *gorm.DB) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
 
 		if r.Method == "POST" {
-			//mendapatkan value dari cookie
+			//cek userid dari cookie
 			userId, _ := strconv.Atoi(getCookieValue(con, r))
+			if userId != 0 {
+				var wallet = models.UserBalance{
+					UserID:             userId,
+					Balance:            0,
+					BalanceAchieve:     0,
+					CreatedAt:          time.Time{},
+					UpdatedAt:          time.Time{},
+				}
 
-			fmt.Println("new",userId)
+				err := con.Create(&wallet).Error
+				if err != nil {
+					JsonResponse(nil,  w)
+					return
+				}
 
-			var wallet = models.UserBalance{
-				UserID:             userId,
-				Balance:            0,
-				BalanceAchieve:     0,
-				CreatedAt:          time.Time{},
-				UpdatedAt:          time.Time{},
+				w.Write([]byte("Membuat Wallet baru berhasil"))
+				return
 			}
-
-			err := con.Create(&wallet).Error
-			if err != nil {
-				JsonResponse(nil,  w)
-			}
-
-			JsonResponse(nil,  w)
+			//tidak punya akses
+			http.Error(w, "Anda tidak punya akses", http.StatusBadRequest)
+			return
 		}
 	}
 }
@@ -92,22 +129,30 @@ func DeleteWallet(con *gorm.DB) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
 
 		if r.Method == "DELETE" {
-			//mendapatkan walletID dari url parameter
-			urlParams := mux.Vars(r)
-			walletID := urlParams["walletID"]
+			//cek userid dari cookie
+			userId, _ := strconv.Atoi(getCookieValue(con, r))
+			if userId != 0 {
+				//mendapatkan walletID dari url parameter
+				urlParams := mux.Vars(r)
+				walletID := urlParams["walletID"]
 
-			//cek jika wallet dengan id tersebut ada
-			var wallet models.UserBalance
+				//cek jika wallet dengan id tersebut ada
+				var wallet models.UserBalance
 
-			if err := con.First(&wallet, walletID).Error; gorm.IsRecordNotFoundError(err) {
-				// record not found
-				http.Error(w, "Wallet tidak ditemukan", http.StatusBadRequest)
+				if err := con.First(&wallet, walletID).Error; gorm.IsRecordNotFoundError(err) {
+					// record not found
+					http.Error(w, "Wallet tidak ditemukan", http.StatusBadRequest)
+					return
+				}
+
+				con.Delete(&wallet, walletID)
+
+				w.Write([]byte("Menghapus wallet berhasil"))
 				return
 			}
-
-			con.Delete(&wallet, walletID)
-
-			JsonResponse(nil, w)
+			//tidak punya akses
+			http.Error(w, "Anda tidak punya akses", http.StatusBadRequest)
+			return
 		}
 	}
 }
@@ -116,37 +161,44 @@ func AddBalance(con *gorm.DB) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
 
 		if r.Method == "PUT" {
-			//mendapatkan walletID dari url parameter
-			urlParams := mux.Vars(r)
-			walletID := urlParams["walletID"]
+			//cek userid dari cookie
+			userId, _ := strconv.Atoi(getCookieValue(con, r))
+			if userId != 0 {
+				//mendapatkan walletID dari url parameter
+				urlParams := mux.Vars(r)
+				walletID := urlParams["walletID"]
 
-			var wallet models.UserBalance
+				var wallet models.UserBalance
 
-			//cek jika wallet dengan id tersebut ada
-			if err := con.First(&wallet, walletID).Error; gorm.IsRecordNotFoundError(err) {
-				// record not found
-				http.Error(w, "Wallet tidak ditemukan", http.StatusBadRequest)
+				//cek jika wallet dengan id tersebut ada
+				if err := con.First(&wallet, walletID).Error; gorm.IsRecordNotFoundError(err) {
+					// record not found
+					http.Error(w, "Wallet tidak ditemukan", http.StatusBadRequest)
+					return
+				}
+
+				//cek jika user_id dari wallet sama dengan id dari user yang login
+				if wallet.UserID != userId {
+					http.Error(w, "Anda tidak punya akses", http.StatusBadRequest)
+				}
+
+				//mendapatkan newBalance dari url parameters
+				newBalance, _ := strconv.Atoi(r.URL.Query()["newbalance"][0])
+
+				//mendapatkan nilai balance sebelumnya
+				con.First(&wallet, walletID)
+				oldBalance := wallet.Balance
+
+				//update nilai balance dan balance_achieve
+				con.Model(&wallet).Updates(map[string]interface{}{"balance": newBalance+oldBalance, "balance_achieve": newBalance+oldBalance})
+
+				JsonResponse(wallet, w)
 				return
 			}
 
-			//cek jika user_id dari wallet sama dengan id dari user yang login
-			userId, _ := strconv.Atoi(getCookieValue(con, r))
-			if wallet.UserID != userId {
-				http.Error(w, "Anda tidak punya akses", http.StatusBadRequest)
-			}
-
-			//mendapatkan newBalance dari url parameters
-			newBalance, _ := strconv.Atoi(strings.Split(r.URL.RawQuery, "=")[1])
-
-			//mendapatkan nilai balance sebelumnya
-			con.First(&wallet, walletID)
-			oldBalance := wallet.Balance
-
-			con.Model(&wallet).Where("id = ?", walletID).Update("balance", newBalance+oldBalance)
-
-			data := struct {wallet models.UserBalance} {wallet}
-
-			JsonResponse(data, w)
+			//tidak punya akses
+			http.Error(w, "Anda tidak punya akses", http.StatusBadRequest)
+			return
 		}
 	}
 }
@@ -155,39 +207,47 @@ func SubstractBalance(con *gorm.DB) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
 
 		if r.Method == "PUT" {
-			//mendapatkan walletID dari url parameter
-			urlParams := mux.Vars(r)
-			walletID := urlParams["walletID"]
-
-			var wallet models.UserBalance
-
-			//cek jika wallet dengan id tersebut ada
-			if err := con.First(&wallet, walletID).Error; gorm.IsRecordNotFoundError(err) {
-				// record not found
-				http.Error(w, "Wallet tidak ditemukan", http.StatusBadRequest)
-				return
-			}
-
-			//cek jika user_id dari wallet sama dengan id dari user yang login
+			//cek userid dari cookie
 			userId, _ := strconv.Atoi(getCookieValue(con, r))
-			if wallet.UserID != userId {
-				http.Error(w, "Anda tidak punya akses", http.StatusBadRequest)
+			if userId != 0 {
+				//mendapatkan walletID dari url parameter
+				urlParams := mux.Vars(r)
+				walletID := urlParams["walletID"]
+
+				var wallet models.UserBalance
+
+				//cek jika wallet dengan id tersebut ada
+				if err := con.First(&wallet, walletID).Error; gorm.IsRecordNotFoundError(err) {
+					// record not found
+					http.Error(w, "Wallet tidak ditemukan", http.StatusBadRequest)
+					return
+				}
+
+				//cek jika user_id dari wallet sama dengan id dari user yang login
+				if wallet.UserID != userId {
+					http.Error(w, "Anda tidak punya akses", http.StatusBadRequest)
+				}
+
+				//mendapatkan newBalance dari url parameters
+				newBalance, _ := strconv.Atoi(r.URL.Query()["newbalance"][0])
+
+				//mendapatkan nilai balance sebelumnya
+				con.First(&wallet, walletID)
+				oldBalance := wallet.Balance
+
+				if newBalance < oldBalance {
+					con.Model(&wallet).Where("id = ?", walletID).Update("balance", oldBalance - newBalance)
+					JsonResponse(wallet, w)
+					return
+				} else {
+					http.Error(w, "Saldo tidak mencukupi", http.StatusBadRequest)
+					return
+				}
 			}
 
-			//mendapatkan newBalance dari url parameters
-			newBalance, _ := strconv.Atoi(strings.Split(r.URL.RawQuery, "=")[1])
-
-			//mendapatkan nilai balance sebelumnya
-			con.First(&wallet, walletID)
-			oldBalance := wallet.Balance
-
-			if newBalance < oldBalance {
-				con.Model(&wallet).Where("id = ?", walletID).Update("balance", oldBalance - newBalance)
-				data := struct {wallet models.UserBalance} {wallet}
-				JsonResponse(data, w)
-			} else {
-				JsonResponse(nil,w)
-			}
+			//tidak punya akses
+			http.Error(w, "Anda tidak punya akses", http.StatusBadRequest)
+			return
 		}
 	}
 }
