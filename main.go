@@ -47,8 +47,9 @@ func main() {
 	routes := routes.GetRoutes(connection)
 	http.Handle("/", routes)
 
-	fmt.Println("server started at localhost:8080")
-	log.Fatal(http.ListenAndServe(":8080", nil))
+	PORT := GetEnvironmentVariable("PORT")
+	fmt.Println(fmt.Sprintf("server started at localhost:%s", PORT))
+	log.Fatal(http.ListenAndServe(fmt.Sprintf(":%s", PORT), nil))
 
 	defer connection.Close()
 }
