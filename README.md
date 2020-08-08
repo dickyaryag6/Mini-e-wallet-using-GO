@@ -26,5 +26,6 @@ ENDPOINTS | METHOD | NAME
 
 - untuk endpoint REGISTER, input didapatkan dari FORM dengan data yang dibutuhkan adalah `username`, `email`, `password`
 - untuk endpoint LOGIN, input didapatkan dari FORM dengan data yang dibutuhkan adalah `username`, `password`
+- untuk endpoint TOPUP WALLET dan TRANSFER BALANCE, url parameter `type` memiliki dua pilihan nilai, `debit` dan `credit`
 
 
