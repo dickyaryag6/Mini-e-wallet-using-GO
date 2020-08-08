@@ -10,7 +10,7 @@
 `DATABASE=ewallet `<br/>
 `PORT=8080 `<br/>
 
-- untuk menjalankan aplikasi, buka terminal dan arahkan ke direktori di mana file "main.go" berada, dan jalankan "go run main.go"
+- untuk menjalankan aplikasi, buka terminal dan arahkan ke direktori di mana file `main.go` berada, dan jalankan `go run main.go`
 
 ENDPOINTS | METHOD | NAME
 ----------|--------|-----
