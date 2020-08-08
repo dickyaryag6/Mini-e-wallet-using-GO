@@ -41,6 +41,9 @@ func main() {
 	//migrasi database
 	database.Migrate(connection)
 
+	//melakukan seed untuk data awal di database
+	database.Seed(connection)
+
 	routes := routes.GetRoutes(connection)
 	http.Handle("/", routes)
 

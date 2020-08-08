@@ -2,9 +2,9 @@ package models
 
 import "time"
 
-type UserBalanceHistory struct {
+type BankBalanceHistory struct {
 	ID int 						`gorm:"primary_key" json:"id"`
-	UserBalanceID	int  		`gorm:"column:user_balance_id"` //`gorm:"foreignkey:ID"`
+	BankBalanceID	int  		`gorm:"column:bank_balance_id"` //`gorm:"foreignkey:ID"`
 	BalanceBefore	int			`gorm:"column:balance_before;not null;default:0;type:int"`
 	BalanceAfter    int			`gorm:"column:balance_after;not null;default:0;type:int"`
 	Activity		string		`gorm:"column:activity;type:varchar(50)"`

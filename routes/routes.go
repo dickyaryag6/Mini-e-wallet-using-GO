@@ -24,15 +24,25 @@ func GetRoutes(con *gorm.DB) *mux.Router {
 	routes.HandleFunc("/login", controllers.Login(con)).Methods("POST")
 	routes.HandleFunc("/logout", controllers.Logout(con))
 
-	//transaksi wallet
-	routes.HandleFunc("/wallet/", controllers.GetAllWallet(con)).Methods("GET")
-	routes.HandleFunc("/wallet/{walletID}", controllers.GetWallet(con)).Methods("GET")
+	//wallet
+	routes.HandleFunc("/wallet/all", controllers.GetAllWallet(con)).Methods("GET")
+	routes.HandleFunc("/wallet", controllers.GetWallet(con)).Methods("GET")
 	routes.HandleFunc("/wallet/create", controllers.CreateNewWallet(con)).Methods("POST")
-	routes.HandleFunc("/wallet/delete/{walletID}", controllers.DeleteWallet(con)).Methods("DELETE")
-	routes.HandleFunc("/wallet/addbalance/{walletID}", controllers.AddBalance(con)).Methods("PUT")
-	routes.HandleFunc("/wallet/substractbalance/{walletID}", controllers.SubstractBalance(con)).Methods("PUT")
+	routes.HandleFunc("/wallet/delete", controllers.DeleteWallet(con)).Methods("DELETE")
+	routes.HandleFunc("/wallet/addbalance", controllers.AddBalance(con)).Methods("PUT")
+	//routes.HandleFunc("/wallet/substractbalance", controllers.SubstractBalance(con)).Methods("PUT")
 
 	//transfer antar wallet
+	routes.HandleFunc("/wallet/transfer", controllers.Transfer(con)).Methods("POST")
+
+
+	//bank
+	routes.HandleFunc("/bank/all", controllers.GetAllBank(con)).Methods("GET")
+	routes.HandleFunc("/bank/create", controllers.CreateNewBank(con)).Methods("POST")
+	routes.HandleFunc("/bank/addbalance", controllers.AddBankBalance(con)).Methods("PUT")
+	routes.HandleFunc("/bank/substractbalance", controllers.SubstractBankBalance(con)).Methods("PUT")
+
+
 
 
 	return routes
