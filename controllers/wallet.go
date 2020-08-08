@@ -339,7 +339,7 @@ func Transfer (con *gorm.DB) http.HandlerFunc {
 				}
 				//kurangi balance fromWallet
 				oldToBalance := toWallet.Balance
-				
+
 				con.Model(&fromWallet).Updates(map[string]interface{}{"balance": oldFromBalance-transferBalance})
 
 				//tambahkan balance toWallet
