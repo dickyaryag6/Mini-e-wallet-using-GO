@@ -26,5 +26,7 @@ ENDPOINTS | METHOD | NAME |KETERANGAN
 `host:port/wallet/transfer?fromwallet=1&towallet=2&type=debit&balance=2000`|POST|TRANSFER BALANCE|`fromwallet`=id dari wallet yang mentransfer<br/>`towallet=id dari wallet yang menerima transfer`<br/>`type`=jenis transaksi(debit/credit)`balance`=jumlah transfer
 `host:port/bank/all`|GET|LIST OF ALL BANKS|
 
+- seeding database sudah otomatis dijalankan ketika aplikasi dijalankan
+
 
 
