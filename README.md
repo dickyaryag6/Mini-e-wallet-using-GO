@@ -1,6 +1,6 @@
 # Mini e-wallet using GO
 
-- buat table dengan nama ewallet pada DBMS MySQL
+- buat table dengan nama `ewallet` pada DBMS MySQL
 
 - edit file .env untuk koneksi database dengan nilai variabel disesuaikan dengan konfigurasi MySQL dan juga PORT untuk aplikasi:
 
